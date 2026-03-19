@@ -7,6 +7,24 @@ cd "$WORKSPACE" || exit 1
 # 加载环境变量（Git token）
 export GITHUB_TOKEN="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"
 
+# 通知函数 - 通过 OpenClaw API 发送飞书消息
+notify() {
+    local msg="$1"
+    echo "$(date): 发送通知: $msg"
+    
+    # 尝试通过 OpenClaw CLI 发送消息
+    local payload="{\"channel\":\"feishu\",\"target\":\"ou_f12cee23292ff7a5164eb9ada96bd67e\",\"message\":\"$msg\"}"
+    
+    # 尝试多种方式发送
+    # 方式1: 通过 OpenClaw Gateway API
+    curl -s -X POST 'http://localhost:3000/v1/messages/send' \
+        -H 'Content-Type: application/json' \
+        -d "$payload" 2>/dev/null
+    
+    # 方式2: 写入待发送队列（由 OpenClaw 主进程处理）
+    echo "$(date '+%Y-%m-%d %H:%M:%S')|$msg" >> /tmp/memory-pending-notifications
+}
+
 # 获取当前时间
 HOUR=$(date +%H)
 WEEKDAY=$(date +%u)  # 1=周一, 7=周日
@@ -23,8 +41,10 @@ if [ "$1" = "hourly" ]; then
         echo "$(date): 无新变更，跳过"
     else
         git commit -m "auto: $(date '+%Y-%m-%d %H:%M') update"
-        git push origin 记忆
-        echo "$(date): 已推送"
+        if git push origin 记忆 2>&1; then
+            echo "$(date): 已推送"
+            notify "🧠 记忆已自动同步（每小时）"
+        fi
     fi
     exit 0
 fi
@@ -39,7 +59,9 @@ if [ "$1" = "daily" ]; then
     # 推送到 Git
     git add MEMORY.md memory/
     git commit -m "feat: daily meditation $(date '+%Y-%m-%d')"
-    git push origin 记忆 2>/dev/null
+    if git push origin 记忆 2>/dev/null; then
+        notify "🧠 小冥想完成，记忆已同步"
+    fi
     
     echo "$(date): 小冥想完成"
     exit 0
@@ -74,7 +96,9 @@ if [ "$1" = "weekly" ]; then
     # 4. 提交并推送
     git add -A
     git commit -m "feat: weekly meditation $(date '+%Y-%m-%d')"
-    git push origin 记忆
+    if git push origin 记忆 2>/dev/null; then
+        notify "🧠 大冥想完成（周报生成 + 记忆精简）"
+    fi
     
     echo "$(date): 大冥想完成"
     exit 0
