@@ -38,12 +38,25 @@ if [ "$1" = "hourly" ]; then
     
     # 如果有变更，则 commit
     if git diff --staged --quiet; then
-        echo "$(date): 无新变更，跳过"
+        # 检查是否有未推送的 commit
+        if git log origin/记忆..HEAD --oneline | grep -q .; then
+            echo "$(date): 有未推送的 commit，重试推送..."
+            if git push origin 记忆 2>&1; then
+                echo "$(date): 已推送"
+                notify "🧠 记忆已自动同步（每小时）"
+            else
+                echo "$(date): 推送失败，保留待下次重试"
+            fi
+        else
+            echo "$(date): 无新变更，跳过"
+        fi
     else
         git commit -m "auto: $(date '+%Y-%m-%d %H:%M') update"
         if git push origin 记忆 2>&1; then
             echo "$(date): 已推送"
             notify "🧠 记忆已自动同步（每小时）"
+        else
+            echo "$(date): 推送失败，保留待下次重试"
         fi
     fi
     exit 0
