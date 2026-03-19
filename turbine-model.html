@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>混流式水轮机</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Microsoft YaHei, sans-serif; background: #0a1628; color: #fff; overflow: hidden; }
+    #container { width: 100vw; height: 100vh; }
+    .controls { position: absolute; top: 20px; right: 20px; width: 240px; background: rgba(10, 25, 45, 0.9); padding: 14px; border-radius: 8px; border: 1px solid #2a5a8c; }
+    h1 { font-size: 14px; color: #4a9eff; text-align: center; margin-bottom: 8px; }
+    .control-group { margin-bottom: 8px; }
+    .control-group label { display: block; margin-bottom: 4px; color: #6aa8dc; font-size: 10px; }
+    input[type="range"] { width: 100%; height: 5px; border-radius: 3px; background: linear-gradient(90deg, #1a3a5c, #2980b9); -webkit-appearance: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #4a9eff; cursor: pointer; }
+    .value { text-align: center; font-size: 18px; color: #4a9eff; font-weight: bold; margin: 4px 0; }
+    .params { background: rgba(0,0,0,0.4); padding: 6px; border-radius: 5px; font-size: 9px; line-height: 1.5; }
+    .params .label { color: #6aa8dc; }
+    .params .val { color: #4a9eff; font-weight: bold; float: right; }
+    .btn { padding: 4px 8px; background: #1a4a7a; border: 1px solid #2980b9; border-radius: 3px; color: #8fc9f0; cursor: pointer; margin-right: 2px; font-size: 9px; }
+    .btn:hover { background: #2a5a9c; }
+    .legend { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; font-size: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 2px; }
+    .legend-color { width: 7px; height: 7px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  
+  <div class="controls">
+    <h1>导叶开度控制</h1>
+    <div class="control-group">
+      <label>导叶开度 (0-100%)</label>
+      <input type="range" id="vaneOpening" min="0" max="100" value="50">
+      <div class="value" id="vaneValue">50%</div>
+    </div>
+    <div class="control-group">
+      <div class="params">
+        <div><span class="label">流量:</span> <span class="val" id="flowRate">60</span> m³/s</div>
+        <div><span class="label">水头:</span> <span class="val">120</span> m</div>
+        <div><span class="label">转速:</span> <span class="val" id="rpm">300</span> rpm</div>
+        <div><span class="label">出力:</span> <span class="val" id="power">600</span> MW</div>
+        <div><span class="label">效率:</span> <span class="val" id="efficiency">92</span>%</div>
+      </div>
+    </div>
+    <div class="control-group">
+      <button class="btn" onclick="setDemo('auto')">自动</button>
+      <button class="btn" onclick="setDemo('inc')">增大</button>
+      <button class="btn" onclick="setDemo('dec')">减小</button>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-color" style="background:#3498db"></div>水流</div>
+      <div class="legend-item"><div class="legend-color" style="background:#9b59b6"></div>蜗壳</div>
+      <div class="legend-item"><div class="legend-color" style="background:#27ae60"></div>导叶</div>
+      <div class="legend-item"><div class="legend-color" style="background:#e67e22"></div>转轮</div>
+      <div class="legend-item"><div class="legend-color" style="background:#1abc9c"></div>尾水管</div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x080d18);
+
+    var camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 50);
+    camera.lookAt(0, 0, 0);
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.getElementById('container').appendChild(renderer.domElement);
+
+    // 灯光
+    var ambientLight = new THREE.AmbientLight(0x303050, 0.8);
+    scene.add(ambientLight);
+    var mainLight = new THREE.DirectionalLight(0xffffff, 1);
+    mainLight.position.set(20, 30, 30);
+    scene.add(mainLight);
+    var fillLight = new THREE.DirectionalLight(0x3060a0, 0.5);
+    fillLight.position.set(-20, 10, -20);
+    scene.add(fillLight);
+
+    // 材质
+    var spiralMat = new THREE.MeshPhongMaterial({ color: 0x8e44ad, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
+    var vaneMat = new THREE.MeshPhongMaterial({ color: 0x229954 });
+    var runnerMat = new THREE.MeshPhongMaterial({ color: 0xd35400, metalness: 0.4 });
+    var shaftMat = new THREE.MeshPhongMaterial({ color: 0xc0392b, metalness: 0.7 });
+    var draftMat = new THREE.MeshPhongMaterial({ color: 0x148f77, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+    var waterMat = new THREE.MeshPhongMaterial({ color: 0x2980b9, transparent: true, opacity: 0.6 });
+
+    // ===== 蜗壳 (左侧横置) =====
+    var spiralGroup = new THREE.Group();
+    
+    // 蜗壳主体 - 水平螺旋
+    var spiralPath = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-25, 5, 0),
+      new THREE.Vector3(-22, 8, 4),
+      new THREE.Vector3(-18, 7, 6),
+      new THREE.Vector3(-14, 5, 7),
+      new THREE.Vector3(-10, 2, 6),
+      new THREE.Vector3(-8, -2, 4),
+      new THREE.Vector3(-8, -5, 0)
+    ]);
+    var spiralGeo = new THREE.TubeGeometry(spiralPath, 50, 2.5, 20, false);
+    var spiral = new THREE.Mesh(spiralGeo, spiralMat);
+    spiralGroup.add(spiral);
+
+    // 蜗壳隔板
+    for (var i = 0; i < 6; i++) {
+      var ringGeo = new THREE.TorusGeometry(2 + i * 1.0, 0.12, 8, 32);
+      var ringMat = new THREE.MeshPhongMaterial({ color: 0x7d3c98, transparent: true, opacity: 0.5 });
+      var ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.set(-20 + i * 2.5, 6 - i * 1.5, 4 - i * 0.8);
+      ring.rotation.y = Math.PI / 2 + i * 0.2;
+      spiralGroup.add(ring);
+    }
+
+    // 进水管
+    var inletGeo = new THREE.CylinderGeometry(2.5, 2.5, 8, 20);
+    var inlet = new THREE.Mesh(inletGeo, spiralMat);
+    inlet.rotation.z = Math.PI / 2;
+    inlet.position.set(-28, 5, 0);
+    spiralGroup.add(inlet);
+
+    scene.add(spiralGroup);
+
+    // ===== 导叶 (中间) =====
+    var vaneGroup = new THREE.Group();
+    var numVanes = 16;
+
+    // 导叶外壳环
+    var ringGeo = new THREE.TorusGeometry(5, 0.4, 10, 32);
+    var ring = new THREE.Mesh(ringGeo, new THREE.MeshPhongMaterial({ color: 0x196f3d }));
+    ring.rotation.x = Math.PI / 2;
+    vaneGroup.add(ring);
+
+    // 导叶叶片
+    for (var i = 0; i < numVanes; i++) {
+      var angle = (i / numVanes) * Math.PI * 2;
+      var bladeGeo = new THREE.BoxGeometry(0.15, 4.5, 2);
+      var blade = new THREE.Mesh(bladeGeo, vaneMat);
+      blade.position.x = Math.cos(angle) * 4.5;
+      blade.position.z = Math.sin(angle) * 4.5;
+      blade.rotation.y = -angle;
+      blade.userData.baseAngle = angle;
+      vaneGroup.add(blade);
+    }
+
+    // 中心枢轴
+    var centerGeo = new THREE.CylinderGeometry(1, 1, 1.2, 20);
+    var center = new THREE.Mesh(centerGeo, new THREE.MeshPhongMaterial({ color: 0x145a32 }));
+    vaneGroup.add(center);
+
+    vaneGroup.position.set(-2, 0, 0);
+    scene.add(vaneGroup);
+
+    // ===== 转轮 (下方) =====
+    var runnerGroup = new THREE.Group();
+    
+    // 转轮毂
+    var hubGeo = new THREE.CylinderGeometry(1.8, 1.8, 2.5, 20);
+    var hub = new THREE.Mesh(hubGeo, runnerMat);
+    hub.position.y = -1;
+    runnerGroup.add(hub);
+
+    // 转轮叶片
+    var numBlades = 13;
+    for (var i = 0; i < numBlades; i++) {
+      var bAngle = (i / numBlades) * Math.PI * 2;
+      var bladeShape = new THREE.Shape();
+      bladeShape.moveTo(0, 0);
+      bladeShape.quadraticCurveTo(2.5, 0.3, 5, 0);
+      bladeShape.lineTo(5, -0.2);
+      bladeShape.quadraticCurveTo(2.5, -0.4, 0, -0.15);
+      var bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.12, bevelEnabled: false });
+      var blade = new THREE.Mesh(bladeGeo, runnerMat);
+      blade.position.x = Math.cos(bAngle) * 1.8;
+      blade.position.z = Math.sin(bAngle) * 1.8;
+      blade.position.y = -1;
+      blade.rotation.y = -bAngle;
+      blade.rotation.x = Math.PI / 2 + 0.25;
+      runnerGroup.add(blade);
+    }
+
+    // 锥体
+    var coneGeo = new THREE.ConeGeometry(2.3, 4, 20);
+    var cone = new THREE.Mesh(coneGeo, runnerMat);
+    cone.position.y = -4;
+    cone.rotation.x = Math.PI;
+    runnerGroup.add(cone);
+
+    runnerGroup.position.set(-2, -6, 0);
+    scene.add(runnerGroup);
+
+    // ===== 主轴 =====
+    var shaftGeo = new THREE.CylinderGeometry(0.5, 0.5, 20, 14);
+    var shaft = new THREE.Mesh(shaftGeo, shaftMat);
+    shaft.position.set(-2, 8, 0);
+    scene.add(shaft);
+
+    // ===== 尾水管 (右侧) =====
+    var draftGroup = new THREE.Group();
+
+    // 锥形管 - 向右下方延伸
+    var draftPath = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(5, -2, 0),
+      new THREE.Vector3(10, -4, 0),
+      new THREE.Vector3(15, -5, 0)
+    ]);
+    var draftGeo = new THREE.TubeGeometry(draftPath, 30, 3, 16, false);
+    var draft = new THREE.Mesh(draftGeo, draftMat);
+    draftGroup.add(draft);
+
+    // 加强环
+    for (var i = 0; i < 4; i++) {
+      var dRingGeo = new THREE.TorusGeometry(2.8 + i * 0.5, 0.1, 8, 24);
+      var dRing = new THREE.Mesh(dRingGeo, new THREE.MeshPhongMaterial({ color: 0x117864, transparent: true, opacity: 0.5 }));
+      dRing.position.set(3 + i * 4, -1 - i * 1, 0);
+      dRing.rotation.z = Math.PI / 2;
+      draftGroup.add(dRing);
+    }
+
+    // 出口
+    var outletGeo = new THREE.CylinderGeometry(4.5, 4.5, 2, 20);
+    var outlet = new THREE.Mesh(outletGeo, draftMat);
+    outlet.position.set(17, -5, 0);
+    outlet.rotation.z = Math.PI / 2;
+    draftGroup.add(outlet);
+
+    draftGroup.position.set(2, -6, 0);
+    scene.add(draftGroup);
+
+    // ===== 水流箭头 =====
+    var flowArrows = new THREE.Group();
+    
+    // 蜗壳到导叶
+    var path1 = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-22, 5, 0),
+      new THREE.Vector3(-15, 4, 2),
+      new THREE.Vector3(-8, 2, 1),
+      new THREE.Vector3(-2, 0, 0)
+    ]);
+    var flow1Geo = new THREE.TubeGeometry(path1, 25, 0.4, 8, false);
+    var flow1 = new THREE.Mesh(flow1Geo, waterMat);
+    flowArrows.add(flow1);
+
+    // 导叶到转轮
+    var path2 = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-2, -2, 0),
+      new THREE.Vector3(-2, -4, 0),
+      new THREE.Vector3(-2, -6, 0)
+    ]);
+    var flow2Geo = new THREE.TubeGeometry(path2, 15, 0.4, 8, false);
+    var flow2 = new THREE.Mesh(flow2Geo, waterMat);
+    flowArrows.add(flow2);
+
+    // 转轮到尾水管
+    var path3 = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, -8, 0),
+      new THREE.Vector3(3, -7, 0),
+      new THREE.Vector3(8, -6, 0),
+      new THREE.Vector3(15, -5, 0)
+    ]);
+    var flow3Geo = new THREE.TubeGeometry(path3, 25, 0.4, 8, false);
+    var flow3 = new THREE.Mesh(flow3Geo, waterMat);
+    flowArrows.add(flow3);
+
+    scene.add(flowArrows);
+
+    // ===== 粒子 =====
+    var particles = new THREE.Group();
+    var particleGeo = new THREE.SphereGeometry(0.12, 5, 5);
+    
+    for (var i = 0; i < 80; i++) {
+      var p = new THREE.Mesh(particleGeo, waterMat.clone());
+      p.userData = { progress: Math.random(), speed: 0.3 + Math.random() * 0.3 };
+      particles.add(p);
+    }
+    scene.add(particles);
+
+    // 网格
+    var grid = new THREE.GridHelper(80, 40, 0x0a2540, 0x051525);
+    grid.rotation.x = Math.PI / 2;
+    grid.position.z = -10;
+    scene.add(grid);
+
+    // 标签
+    function createLabel(text, x, y, z) {
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      canvas.width = 256;
+      canvas.height = 64;
+      ctx.font = 'bold 36px Microsoft YaHei';
+      ctx.fillStyle = '#4a9eff';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, 128, 42);
+      var texture = new THREE.CanvasTexture(canvas);
+      var sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+      sprite.position.set(x, y, z);
+      sprite.scale.set(8, 2, 1);
+      return sprite;
+    }
+
+    scene.add(createLabel('蜗壳', -20, 10, 0));
+    scene.add(createLabel('导叶', -2, 7, 0));
+    scene.add(createLabel('转轮', -2, -12, 0));
+    scene.add(createLabel('尾水管', 12, -2, 0));
+    scene.add(createLabel('主轴', -2, 18, 0));
+
+    // 动画变量
+    var vaneOpening = 50;
+    var runnerRotation = 0;
+    var time = 0;
+    var demoMode = null;
+
+    function updateVanes() {
+      var opening = vaneOpening / 100;
+      vaneGroup.children.forEach(function(child, idx) {
+        if (idx > 0 && idx <= numVanes) {
+          child.rotation.x = (opening - 0.5) * 0.8;
+        }
+      });
+    }
+
+    function updateParticles() {
+      var flowRate = vaneOpening / 100;
+      particles.children.forEach(function(p) {
+        var d = p.userData;
+        d.progress += d.speed * flowRate * 0.005;
+        if (d.progress > 1) d.progress = 0;
+        
+        // 沿路径移动
+        if (d.progress < 0.3) {
+          var t = d.progress / 0.3;
+          p.position.set(-22 + t * 20, 5 - t * 5, 2 * (1 - t));
+        } else if (d.progress < 0.5) {
+          var t = (d.progress - 0.3) / 0.2;
+          p.position.set(-2, -t * 6, 0);
+        } else {
+          var t = (d.progress - 0.5) / 0.5;
+          p.position.set(t * 17, -6 + t, 0);
+        }
+        
+        p.material.opacity = 0.2 + flowRate * 0.4;
+      });
+      
+      flowArrows.children.forEach(function(f) {
+        f.material.opacity = 0.2 + flowRate * 0.4;
+      });
+    }
+
+    function updateUI() {
+      document.getElementById('vaneValue').textContent = vaneOpening + '%';
+      document.getElementById('flowRate').textContent = Math.round(vaneOpening * 1.2);
+      document.getElementById('rpm').textContent = Math.round(200 + vaneOpening * 2);
+      document.getElementById('power').textContent = Math.round(vaneOpening * 12);
+      document.getElementById('efficiency').textContent = Math.round(75 + vaneOpening * 0.2);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (demoMode === 'inc' && vaneOpening < 100) vaneOpening += 0.3;
+      else if (demoMode === 'dec' && vaneOpening > 0) vaneOpening -= 0.3;
+      else if (demoMode === 'auto') vaneOpening = 50 + Math.sin(time * 0.008) * 45;
+
+      vaneOpening = Math.max(0, Math.min(100, vaneOpening));
+      document.getElementById('vaneOpening').value = vaneOpening;
+
+      runnerRotation += 0.01 * (vaneOpening / 50);
+      runnerGroup.rotation.y = runnerRotation;
+      shaft.rotation.y = runnerRotation;
+
+      updateVanes();
+      updateParticles();
+      updateUI();
+
+      time++;
+      camera.position.x = 50 * Math.sin(time * 0.001);
+      camera.position.z = 50 * Math.cos(time * 0.001);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    }
+
+    document.getElementById('vaneOpening').addEventListener('input', function(e) {
+      vaneOpening = parseInt(e.target.value);
+      demoMode = null;
+    });
+
+    window.addEventListener('resize', function() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.setDemo = function(mode) { demoMode = mode; };
+
+    animate();
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "characteristic-voice": {
+      "source": "NoizAI/skills",
+      "sourceType": "github",
+      "computedHash": "e6cfc8eaa312efdaa7b294f9a49d84e15012373839a7e506659e69318d49cf99"
+    }
+  }
+}

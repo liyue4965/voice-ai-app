@@ -1,6 +1,12 @@
 import { useEditorUIStore, useSceneStore } from '../../stores'
 
-export function Toolbar() {
+interface ToolbarProps {
+  onPreview?: () => void
+  onManager?: () => void
+  onLogout?: () => void
+}
+
+export function Toolbar({ onPreview, onManager, onLogout }: ToolbarProps) {
   const { activeTool, setActiveTool, openModal } = useEditorUIStore()
   const { clearScene, getSceneData } = useSceneStore()
 
@@ -83,6 +89,9 @@ export function Toolbar() {
       <button className="toolbar-btn" onClick={() => openModal('dataSource')}>
         📡 数据源
       </button>
+      <button className="toolbar-btn" onClick={onManager} style={{ background: '#8b5cf6', borderColor: '#8b5cf6' }}>
+        ⚙️ 管理中心
+      </button>
 
       <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 8px' }} />
       
@@ -95,9 +104,21 @@ export function Toolbar() {
       <button className="toolbar-btn" onClick={() => openModal('export')}>
         📤 导出
       </button>
+      <button className="toolbar-btn" onClick={onPreview} style={{ background: '#4ade80', borderColor: '#4ade80' }}>
+        ▶ 预览
+      </button>
       <button className="toolbar-btn" onClick={clearScene}>
         🗑️ 清空
       </button>
+      {onLogout && (
+        <button 
+          className="toolbar-btn" 
+          onClick={onLogout}
+          style={{ marginLeft: 'auto', background: '#ef4444', borderColor: '#ef4444' }}
+        >
+          🚪 退出登录
+        </button>
+      )}
     </div>
   )
 }

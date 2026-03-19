@@ -8,22 +8,56 @@ import { AddObjectModal } from './AddObjectModal'
 import { DataSourceModal } from './DataSourceModal'
 import { AIGenerateModal } from './AIGenerateModal'
 import { ExportModal } from './ExportModal'
+import { Preview } from '../Preview/Preview'
+import { ManagerPanel } from '../Manager/ManagerPanel'
 import { useSceneStore, useEditorUIStore } from '../../stores'
 import type { SceneObject } from '../../types'
 
-export function Editor() {
-  const { sceneData, selectedObjectId, selectObject } = useSceneStore()
+interface EditorProps {
+  onLogout?: () => void
+}
+
+export function Editor({ onLogout }: EditorProps) {
+  const { sceneData, selectedObjectId } = useSceneStore()
   const { isModalOpen, modalType, closeModal } = useEditorUIStore()
   const [activePanel, setActivePanel] = useState<'properties' | 'data'>('properties')
+  const [isPreviewMode, setIsPreviewMode] = useState(false)
+  const [showManager, setShowManager] = useState(false)
+  const [managerTab, setManagerTab] = useState('project')
 
   // 获取选中对象
   const selectedObject = selectedObjectId 
     ? sceneData.objects[selectedObjectId] as SceneObject | undefined 
     : undefined
 
+  // 预览模式
+  if (isPreviewMode) {
+    return (
+      <Preview 
+        sceneData={sceneData} 
+        onExit={() => setIsPreviewMode(false)} 
+      />
+    )
+  }
+
+  // 管理中心模式
+  if (showManager) {
+    return (
+      <ManagerPanel 
+        onClose={() => setShowManager(false)} 
+        activeTab={managerTab}
+        onTabChange={setManagerTab}
+      />
+    )
+  }
+
   return (
     <>
-      <Toolbar />
+      <Toolbar 
+        onPreview={() => setIsPreviewMode(true)} 
+        onManager={() => setShowManager(true)}
+        onLogout={onLogout}
+      />
       <div className="main-content">
         <Sidebar />
         <Viewport />

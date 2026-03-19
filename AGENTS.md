@@ -23,8 +23,14 @@ You wake up fresh each session. These files are your continuity:
 
 - **Daily notes:** `memory/YYYY-MM-DD.md` (create `memory/` if needed) — raw logs of what happened
 - **Long-term:** `MEMORY.md` — your curated memories, like a human's long-term memory
+- **Self-improving:** `~/self-improving/` (via `self-improving` skill) — execution-improvement memory (preferences, workflows, style patterns, what improved/worsened outcomes)
 
 Capture what matters. Decisions, context, things to remember. Skip the secrets unless asked to keep them.
+
+Use `memory/YYYY-MM-DD.md` and `MEMORY.md` for factual continuity (events, context, decisions).
+Use `~/self-improving/` for compounding execution quality across tasks.
+For compounding quality, capture clear execution-improvement signals in `~/self-improving/`: preferences, workflow/style choices, what improved or degraded results, and high-signal inferences for next time.
+If in doubt, store factual history in `memory/YYYY-MM-DD.md` / `MEMORY.md`, and store reusable performance lessons in `~/self-improving/` (tentative until human validation).
 
 ### 🧠 MEMORY.md - Your Long-Term Memory
 
@@ -36,13 +42,16 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - This is your curated memory — the distilled essence, not raw logs
 - Over time, review your daily files and update MEMORY.md with what's worth keeping
 
+When writing or organizing in `~/self-improving/`, read `self-improving` `SKILL.md` first.
+If inferring a new rule, keep it tentative until human validation.
+
 ### 📝 Write It Down - No "Mental Notes"!
 
 - **Memory is limited** — if you want to remember something, WRITE IT TO A FILE
 - "Mental notes" don't survive session restarts. Files do.
-- When someone says "remember this" → update `memory/YYYY-MM-DD.md` or relevant file
-- When you learn a lesson → update AGENTS.md, TOOLS.md, or the relevant skill
-- When you make a mistake → document it so future-you doesn't repeat it
+- When someone says "remember this" → if it's factual context/event, update `memory/YYYY-MM-DD.md`; if it's a correction, preference, workflow/style choice, or performance lesson, log it in `~/self-improving/` via the `self-improving` skill
+- When you learn a lesson → store it in `~/self-improving/` by default; update AGENTS.md/TOOLS.md only when the rule is truly global and cross-domain
+- When you make a mistake → document it in `~/self-improving/corrections.md` so future behavior improves; escalate to AGENTS.md/TOOLS.md only for broad, always-on guardrails
 - **Text > Brain** 📝
 
 ## Safety

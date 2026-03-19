@@ -308,3 +308,285 @@
   padding: 2px 6px;
   border-radius: 3px;
 }
+
+/* 管理中心面板 */
+.manager-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-primary);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-header {
+  height: 56px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.manager-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.manager-tabs {
+  display: flex;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+}
+
+.tab-btn {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.manager-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.manager-section {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  margin-top: 12px;
+}
+
+.btn-danger {
+  background: var(--error);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+/* 项目卡片 */
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.project-thumbnail {
+  width: 80px;
+  height: 60px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-info {
+  flex: 1;
+}
+
+.project-info h4 {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.project-info p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.project-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.project-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 模板网格 */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.template-card {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.template-card:hover {
+  background: var(--border);
+  transform: translateY(-2px);
+}
+
+.template-card h4 {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin: 8px 0 4px;
+}
+
+.template-card p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+/* 资源网格 */
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 12px;
+}
+
+.resource-card {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resource-card:hover {
+  background: var(--border);
+}
+
+.resource-card span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+/* 分类标签 */
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.category-btn {
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.category-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* 场景列表 */
+.scene-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.scene-item span {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.scene-item div {
+  display: flex;
+  gap: 8px;
+}
