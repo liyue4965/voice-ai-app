@@ -42,17 +42,17 @@ class StrategyConfig:
         # 交易参数
         self.stop_loss = 0.03       # 止损 3%
         
-        # === 新增: 动态止盈参数 ===
-        self.take_profit_1 = 0.05   # 第一档止盈 5%
-        self.take_profit_2 = 0.10   # 第二档止盈 10%
-        self.take_profit_3 = 0.15   # 第三档止盈 15%
-        self.exit_ratio_1 = 0.5     # 第一档卖出 50%
-        self.exit_ratio_2 = 0.5     # 第二档卖出 50% (剩余的)
+        # === 动态止盈参数 (调整后) ===
+        self.take_profit_1 = 0.08   # 第一档止盈 8%
+        self.take_profit_2 = 0.15   # 第二档止盈 15%
+        self.take_profit_3 = 0.25   # 第三档止盈 25%
+        self.exit_ratio_1 = 0.4     # 第一档卖出 40%
+        self.exit_ratio_2 = 0.6     # 第二档卖出 60% (剩余的)
         
-        # === 新增: 时间衰减因子 ===
+        # === 时间衰减因子 (调整后) ===
         self.time_decay_enabled = True
-        self.time_decay_hours = 24  # 结算前多少小时开始增强反向信号
-        self.time_decay_strength = 1.5  # 反向信号增强倍数
+        self.time_decay_hours = 48  # 结算前48小时开始增强
+        self.time_decay_strength = 1.2  # 反向信号增强倍数降低
         
         # === 新增: 流动性筛选 ===
         self.min_volume = 50000     # 最小成交量
@@ -62,7 +62,7 @@ class StrategyConfig:
         self.min_confidence = 0.01
         
         # 信号阈值 (降低以产生更多信号)
-        self.signal_threshold = 0.15
+        self.signal_threshold = 0.01
 
     def to_dict(self):
         return {
@@ -526,7 +526,7 @@ def run_backtest_v2(
         
         # 交易逻辑 (降低置信度要求)
         min_conf = getattr(config, 'min_confidence', 0.01)
-        if action == "BUY" and position == 0 and confidence > min_conf * 0.3:
+        if action == "BUY" and position == 0 and confidence > 0:
             shares = (capital * config.R_max) / current_price
             cost = shares * current_price
             if cost < capital:
